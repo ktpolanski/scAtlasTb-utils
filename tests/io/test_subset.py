@@ -171,16 +171,16 @@ def test_subset_mask_none_handling(adata):
         adata_subset = atl.io.read_anndata(subset_path)
         assert adata_subset.shape == adata.shape
 
-        # # Test with partial None masks
-        # obs_mask = np.random.choice([True, False], size=adata.n_obs, p=[0.7, 0.3])
+        # Test with partial None masks
+        obs_mask = np.random.choice([True, False], size=adata.n_obs, p=[0.7, 0.3])
 
-        # subset_path2 = Path(temp_dir) / "subset2.zarr"
-        # atl.io.write_zarr_linked(
-        #     adata,
-        #     in_dir=original_path,
-        #     out_dir=subset_path2,
-        #     subset_mask=(obs_mask, None),  # Only subset observations
-        # )
+        subset_path2 = Path(temp_dir) / "subset2.zarr"
+        atl.io.write_zarr_linked(
+            adata,
+            in_dir=original_path,
+            out_dir=subset_path2,
+            subset_mask=(obs_mask, None),  # Only subset observations
+        )
 
-        # adata_subset2 = atl.io.read_anndata(subset_path2)
-        # assert adata_subset2.shape == (obs_mask.sum(), adata.n_vars)\
+        adata_subset2 = atl.io.read_anndata(subset_path2)
+        assert adata_subset2.shape == (obs_mask.sum(), adata.n_vars)
