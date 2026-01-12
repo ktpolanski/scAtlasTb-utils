@@ -3,9 +3,9 @@ import os
 import shutil
 from collections.abc import MutableMapping
 from pathlib import Path
-from pprint import pformat
 
 import anndata as ad
+import numpy as np
 import pandas as pd
 from dask import array as da
 
@@ -90,7 +90,6 @@ def link_file(
 
     if overwrite and out_file.exists():
         if out_file.is_dir() and not out_file.is_symlink():
-            print_flushed(f"replace {out_file}...", verbose=verbose)
             shutil.rmtree(out_file)
         else:
             out_file.unlink()
@@ -192,7 +191,9 @@ def link_zarr(
         key=lambda item: out_dir.name in str(in_dir_map[item[1]]),
         reverse=False,
     )
-    print_flushed("slot_map:", pformat(slot_map), verbose=verbose)
+    print_flushed("Linking files with the following mappings:", verbose=verbose)
+    for out_slot, in_slot in slot_map:
+        print_flushed(f"  {out_slot} -> {in_slot}, {in_dir_map[in_slot]}", verbose=verbose)
 
     for out_slot, in_slot in slot_map:
         in_dir = in_dir_map[in_slot]
@@ -267,12 +268,16 @@ def write_zarr_linked(
         Whether to compute dask arrays before writing. Default is False.
     """
     if subset_mask is not None:
-        assert adata.shape[0] == subset_mask[0].sum(), (
-            "Number of observations in adata does not match the provided subset mask."
-        )
-        assert adata.shape[1] == subset_mask[1].sum(), (
-            "Number of variables in adata does not match the provided subset mask."
-        )
+        # parse subset_mask
+        obs_mask, var_mask = subset_mask
+        obs_mask = obs_mask if obs_mask is not None else np.ones(len(adata.obs_names), dtype=bool)
+        var_mask = var_mask if var_mask is not None else np.ones(len(adata.var_names), dtype=bool)
+        if (adata.n_obs, adata.n_vars) != (int(obs_mask.sum()), int(var_mask.sum())):
+            raise ValueError(
+                f"adata shape ({adata.n_obs}, {adata.n_vars}) does not match "
+                f"subset mask sums (obs: {int(obs_mask.sum())}, var: {int(var_mask.sum())})"
+            )
+        subset_mask = (obs_mask, var_mask)
 
     if in_dir:
         in_dir = Path(in_dir)
