@@ -116,6 +116,7 @@ def read_anndata(
     chunks: int | tuple | None = None,
     stride: int = 200_000,
     verbose: bool = True,
+    debug: bool = False,
     dask_slots: list[str] | None = None,
     select_keys: str | list[str] | None = None,
     **kwargs: Any,
@@ -141,6 +142,8 @@ def read_anndata(
         Stride for dask arrays. Default is 200_000.
     verbose
         Whether to print verbose output. Default is True.
+    debug
+        Whether to enable debug mode. Default is False.
     dask_slots
         Slots to read as dask arrays. Default is None.
     select_keys
@@ -243,6 +246,9 @@ def read_anndata(
         obsp: 'connectivities', 'distances'
 
     """
+    if debug:
+        verbose = True
+
     if exclude_slots is None:
         exclude_slots = []
     elif exclude_slots == "all":
@@ -276,9 +282,10 @@ def read_anndata(
         backed=backed,
         chunks=chunks,
         stride=stride,
-        verbose=verbose,
         dask_slots=dask_slots,
         select_keys=select_keys,
+        verbose=verbose,
+        debug=debug,
         **kwargs,
     )
     if not backed and file_type == "h5py":
@@ -297,8 +304,9 @@ def read_partial(
     force_sparse_types: str | list[str] | None = None,
     force_sparse_slots: str | list[str] | None = None,
     dask_slots: str | list[str] | None = None,
-    verbose: bool = False,
     select_keys: str | list[str] | None = None,
+    verbose: bool = False,
+    debug: bool = False,
     **kwargs: Any,
 ) -> ad.AnnData:
     """
@@ -388,6 +396,7 @@ def read_partial(
                         stride=stride,
                         fail_on_missing=False,
                         verbose=False,
+                        debug=debug,
                     )
                     for sub_slot in tqdm(keys, desc=f"Read {from_slot} slots as_dask={as_dask}", disable=not verbose)
                 }
@@ -404,6 +413,7 @@ def read_partial(
                 stride=stride,
                 fail_on_missing=False,
                 verbose=verbose,
+                debug=debug,
             )
 
     try:
@@ -439,6 +449,7 @@ def read_slot(
     stride: int = 1000,
     fail_on_missing: bool = True,
     verbose: bool = True,
+    debug: bool = False,
 ) -> Any:
     """
     Read a specific slot from a zarr or h5py group.
@@ -467,6 +478,8 @@ def read_slot(
         Whether to raise an error if the slot is not found. Default is True.
     verbose
         Whether to print verbose output. Default is True.
+    debug
+        Whether to enable debug mode. Default is False.
 
     Returns
     -------
@@ -512,6 +525,10 @@ def read_slot(
             backed=backed,
             verbose=verbose,
         )
+
+    shape = getattr(slot, "shape", None)
+    if shape and debug:
+        print_flushed(f"shape: {shape}", verbose=verbose)
 
     try:
         slot = subset_slot(
